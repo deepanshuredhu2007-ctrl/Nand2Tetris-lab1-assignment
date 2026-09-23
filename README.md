@@ -274,3 +274,36 @@ CHIP Add16 {
     FullAdder(a=a[15], b=b[15], c=c14, sum=out[15], carry=dropCarry);
 }
 
+ALU=
+CHIP ALU {
+    IN  
+        x[16], y[16],  // 16-bit inputs        
+        zx, // zero the x input?
+        nx, // negate the x input?
+        zy, // zero the y input?
+        ny, // negate the y input?
+        f,  // compute (out = x + y) or (out = x & y)?
+        no; // negate the out output?
+    OUT 
+        out[16], // 16-bit output
+        zr,      // if (out == 0) equals 1, else 0
+        ng;      // if (out < 0)  equals 1, else 0
+
+    PARTS:
+    Mux16(a=x, b=false, sel=zx, out=x1);      
+    Not16(in=x1, out=notx1);
+    Mux16(a=x1, b=notx1, sel=nx, out=x2);     
+    Mux16(a=y, b=false, sel=zy, out=y1);      
+    Not16(in=y1, out=noty1);
+    Mux16(a=y1, b=noty1, sel=ny, out=y2);     
+    And16(a=x2, b=y2, out=andxy);             
+    Add16(a=x2, b=y2, out=addxy);            
+    Mux16(a=andxy, b=addxy, sel=f, out=fout); 
+    Not16(in=fout, out=notfout);
+    Mux16(a=fout, b=notfout, sel=no, out=out, out[0..7]=outLow, out[8..15]=outHigh, out[15]=ng);
+    Or8Way(in=outLow, out=orLow);
+    Or8Way(in=outHigh, out=orHigh);
+    Or(a=orLow, b=orHigh, out=notZr);
+    Not(in=notZr, out=zr);
+}
+
